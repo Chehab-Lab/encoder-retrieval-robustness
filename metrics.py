@@ -18,6 +18,7 @@ class AltMetric(Enum):
   INITIAL_ALIGNMENT_CLUSTERS_METRIC = "initial_alignment_clusters"
   INITIAL_ALIGNMENT_CLUSTERS_AUC_METRIC = "initial_alignment_clusters_auc"
   INITIAL_ALIGNMENT_CLUSTERS_AUC_METRIC_WITH_DIM_REDUCTION = "initial_alignment_clusters_auc_with_dim_reduction"
+  MEAN_PRECISION = "mean_precision"
 
 def _normalized_entropy(labels):
     labels = np.asarray(labels)
@@ -33,10 +34,6 @@ def _normalized_entropy(labels):
     H = max(0.0, H)
     Hn = H / np.log(len(active))
     return max(0.0, min(1.0, Hn))
-
-import numpy as np
-import faiss
-from scipy.stats import entropy
 
 def _binary_entropy(p):
     if p == 0 or p == 1:
@@ -353,6 +350,21 @@ def augmentations_rank(embeddings, ids):
 
     return avg_ranks, min_ranks, max_ranks
 
+def mean_precision(embeddings, labels, k):
+    embeddings = embeddings.detach().cpu().numpy().astype("float32")
+    labels = labels.detach().cpu().numpy()
+    
+    faiss.normalize_L2(embeddings)
+    
+    index = faiss.IndexFlatIP(embeddings.shape[1])
+    index.add(embeddings)
+    
+    _, index = index.search(embeddings, k + 1)
+    neighbors = neighbors[:, 1:]
+    
+    same_labels = labels[neighbors] == labels[:, None]
+    return same_labels.mean().item()
+    
 def _gram_linear(x):
   return x.dot(x.T)
 
