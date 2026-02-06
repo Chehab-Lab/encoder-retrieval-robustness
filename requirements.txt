@@ -2,3 +2,4 @@ transformers
 medmnist
 numpy<2
 imgaug
+timm
