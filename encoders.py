@@ -105,7 +105,7 @@ def get_features(encoder, X, target_dim, device="cuda"):
             if len(features.shape) == 1:
                 features = features.unsqueeze(0)
             elif len(features.shape) > 2:
-                features = features.squeeze()
+                features = features.view(-1, target_dim)
             features = pool_features(features, target_dim)
         
         # Swin and MAE AVG
