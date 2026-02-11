@@ -5,10 +5,9 @@ import numpy as np
 import faiss
 from tqdm import tqdm
 from typing import List
-from metrics import AltMetric
 from datasets import get_dataset
 from encoders import get_encoder, get_features
-from metrics import retrieval_mean_precision
+from metric import retrieval_mean_precision
 
 def exists(path):
     return os.path.exists(path)
