@@ -59,6 +59,48 @@
             "shear_min": -16,
             "shear_max": 16,
             "active": true
+        },
+        {
+            "id": "motionblur",
+            "kernelsize": 75,
+            "angle": 260,
+            "direction": -0.80
+        },
+        {
+            "id": "zoomblur", 
+            "minfactor": 1.0, 
+            "maxfactor": 1.13,
+            "minstepfactor": 0.02,
+            "maxstepfactor": 0.03
+        },
+        {
+            "id": "linearcontrast", 
+            "alpha":0.3, 
+            "perchannel": true
+        },
+        {
+            "id": "grayscale", 
+            "alpha" : 1
+        },
+        {
+            "id": "fog", 
+            "alpha": 0.08, 
+            "minfogrange": 0.3,
+            "maxfogrange": 1
+        },
+        {
+            "id": "rain", 
+            "minslantrange": -10.0,
+            "maxslantrange": 10.0, 
+            "brightness": 0.7, 
+            "raintype": "heavy"
+        },
+        {
+            "id": "chromaticabberation", 
+            "minprimarydistortion": -3.0, 
+            "maxprimarydistortion": 3.0, 
+            "minsecondarydistortion": -5.0,
+            "maxsecondarydistortion": 5.0
         }
     ],
     "datasets": [
