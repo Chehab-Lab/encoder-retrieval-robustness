@@ -4,3 +4,4 @@ numpy<2
 imgaug
 timm
 faiss-cpu
+albumentations
