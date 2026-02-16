@@ -64,18 +64,17 @@ def evaluate_retrieval(encoder_name: str,
     #     dataset = zip(all_images, all_labels)
 
     if verbose: print(f"\nExtracting data ...")
-    images_paths = []
+    images = []
     labels = []
     for image, label in tqdm(dataset):
-        images_paths.append(image)
+        images.append(image)
         labels.append(label)
     labels = np.array(labels)
     
     if verbose: print(f"\nGetting image embeddings....")
     embeddings = []
-    encoder.eval()
     for i in tqdm(range(0, num_samples, batch_size)):
-        batch_images = images_paths[i:i+batch_size]
+        batch_images = images[i:i+batch_size]
         batch_labels = labels[i:i+batch_size]
         if transformation:
             batch_images = [_apply_transform(image, transformation) for image in batch_images]

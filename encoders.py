@@ -8,22 +8,6 @@ from torchvision import transforms
 from PIL import Image
 import numpy as np
 
-def SimCLRImageProcessor():
-    def processor(image_s, return_tensors=True):
-        transform = transforms.Compose([
-        transforms.Resize((224, 224)),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-        ])
-        if isinstance(image_s, list):
-            image_s = [transform(image) for image in image_s]
-            image_s = torch.stack(image_s)
-        else:
-            image_s = transform(image_s)
-        return {"pixel_values": image_s}
-    return processor 
-
-
 def get_encoder(encoder_id, device="cuda"):
 
     if "custom" in encoder_id.lower():
@@ -64,8 +48,7 @@ def get_encoder(encoder_id, device="cuda"):
             encoder.load_state_dict(checkpoint)
             encoder.fc = torch.nn.Identity()
             encoder.to(device)
-            # image_processor = AutoImageProcessor.from_pretrained("microsoft/resnet-50", use_fast=True)
-            image_processor = SimCLRImageProcessor()
+            image_processor = AutoImageProcessor.from_pretrained("microsoft/resnet-50", use_fast=True)
         
         if "eva" in encoder_id.lower():
             encoder = timm.create_model('eva02_base_patch14_224.mim_in22k', pretrained=True)
