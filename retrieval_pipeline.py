@@ -49,7 +49,6 @@ def evaluate_retrieval(encoder_name: str,
 
     encoder, img_processor = get_encoder(encoder_name, device=device)
     dataset = get_dataset(dataset_name)
-    num_samples = len(dataset)
 
     # if transformation:
     #     if verbose: print(f"\n Augmenting images....")
@@ -73,7 +72,7 @@ def evaluate_retrieval(encoder_name: str,
     
     if verbose: print(f"\nGetting image embeddings....")
     embeddings = []
-    for i in tqdm(range(0, num_samples, batch_size)):
+    for i in tqdm(range(0, len(images), batch_size)):
         batch_images = images[i:i+batch_size]
         batch_labels = labels[i:i+batch_size]
         if transformation:
@@ -81,7 +80,7 @@ def evaluate_retrieval(encoder_name: str,
         batch_images = img_processor(batch_images, return_tensors="pt")["pixel_values"].to(device)
         batch_emb = get_features(encoder, batch_images, target_dim, device)
         embeddings.append(batch_emb)
-    embeddings = torch.cat(embeddings, dim=0)
+    embeddings = torch.cat(embeddings)
     embeddings = embeddings.cpu().numpy()
             
     if verbose: print("\nEvaluating embeddings....")
