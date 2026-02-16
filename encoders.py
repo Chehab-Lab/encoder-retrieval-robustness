@@ -9,13 +9,17 @@ from PIL import Image
 import numpy as np
 
 def SimCLRImageProcessor():
-    def processor(image, return_tensors=True):
+    def processor(image_s, return_tensors=True):
         transform = transforms.Compose([
         transforms.Resize((224, 224)),
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
         ])
-        return {"pixel_values": transform(image)}
+        if isinstance(image_s, list):
+            image_s = [transform(image) for image in image_s]
+        else:
+            image_s = transform(image_s)
+        return {"pixel_values": image_s}
     return processor 
 
 
