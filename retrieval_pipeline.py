@@ -83,7 +83,7 @@ def evaluate_retrieval(encoder_name: str,
         batch_emb = get_features(encoder, batch_images, target_dim, device)
         embeddings.append(batch_emb)
     embeddings = torch.cat(embeddings, dim=0)
-    embeddings = embeddings.cpu().numpy().astype("float32")
+    embeddings = embeddings.cpu().numpy()
     faiss.normalize_L2(embeddings)
             
     if verbose: print("\nEvaluating embeddings....")
