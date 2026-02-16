@@ -17,6 +17,7 @@ def SimCLRImageProcessor():
         ])
         if isinstance(image_s, list):
             image_s = [transform(image) for image in image_s]
+            image_s = torch.stack(image_s)
         else:
             image_s = transform(image_s)
         return {"pixel_values": image_s}
