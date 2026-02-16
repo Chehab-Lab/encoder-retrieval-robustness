@@ -2,8 +2,8 @@
     "transformations": [
         {
             "id": "blur",
-            "sigma_min": 2,
-            "sigma_max": 10,
+            "sigma_min": 2.0,
+            "sigma_max": 2.2,
             "active": true
         },
         {
@@ -15,11 +15,11 @@
         {
             "id": "jigsaw",
             "nb_rows_min": 2,
-            "nb_rows_max": 5,
+            "nb_rows_max": 2,
             "nb_cols_min": 2,
-            "nb_cols_max": 5,
-            "max_steps_min": 2,
-            "max_steps_max": 5,
+            "nb_cols_max": 2,
+            "max_steps_min": 10,
+            "max_steps_max": 10,
             "active": true
         },
         {
@@ -30,52 +30,52 @@
         },
         {
             "id": "saltandpepper",
-            "p_min": 0.1,
-            "p_max": 0.3,
+            "p_min": 0.07,
+            "p_max": 0.08,
             "per_channel": false,
             "active": true
         },
         {
             "id": "coarsedropout",
             "p_min": 0.1,
-            "p_max": 0.3,
-            "size_percent_min": 0.02,
+            "p_max": 0.15,
+            "size_percent_min": 0.09,
             "size_percent_max": 0.1,
             "per_channel": false,
             "active": true
         },
         {
             "id": "multiplyhue",
-            "hue_min": 0.1,
-            "hue_max": 2,
+            "hue_min": 0.08,
+            "hue_max": 0.1,
             "active": true
         },
         {
             "id": "affine",
-            "scale_min": 0.8,
+            "scale_min": 1.1,
             "scale_max": 1.2,
-            "rotate_min": -45,
-            "rotate_max": 45,
-            "shear_min": -16,
-            "shear_max": 16,
+            "rotate_min": -30,
+            "rotate_max": 30,
+            "shear_min": -20,
+            "shear_max": 20,
             "active": true
         },
         {
             "id": "motionblur",
-            "kernelsize": 75,
-            "angle": 260,
-            "direction": -0.80
+            "kernelsize": 14,
+            "angle": 45,
+            "direction": 1
         },
         {
             "id": "zoomblur", 
-            "minfactor": 1.0, 
-            "maxfactor": 1.13,
+            "minfactor": 1.1, 
+            "maxfactor": 1.15,
             "minstepfactor": 0.02,
             "maxstepfactor": 0.03
         },
         {
             "id": "linearcontrast", 
-            "alpha":0.3, 
+            "alpha":0.6, 
             "perchannel": true
         },
         {
@@ -84,23 +84,23 @@
         },
         {
             "id": "fog", 
-            "alpha": 0.08, 
-            "minfogrange": 0.3,
-            "maxfogrange": 1
+            "alpha": 0.3, 
+            "minfogrange": 0.2,
+            "maxfogrange": 0.25
         },
         {
             "id": "rain", 
             "minslantrange": -10.0,
             "maxslantrange": 10.0, 
-            "brightness": 0.7, 
-            "raintype": "heavy"
+            "brightness": 0.9, 
+            "raintype": "default"
         },
         {
             "id": "chromaticabberation", 
-            "minprimarydistortion": -3.0, 
-            "maxprimarydistortion": 3.0, 
-            "minsecondarydistortion": -5.0,
-            "maxsecondarydistortion": 5.0
+            "minprimarydistortion": 0.1, 
+            "maxprimarydistortion": 0.15, 
+            "minsecondarydistortion": 0.1,
+            "maxsecondarydistortion": 0.15
         }
     ],
     "datasets": [

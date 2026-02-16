@@ -3,6 +3,7 @@ from PIL import Image
 import numpy as np
 import albumentations as A
 import os
+import json
 
 def get_transformation(transformation_obj):
     transformation_name = transformation_obj["id"]
@@ -61,7 +62,7 @@ def get_transformation(transformation_obj):
         max_factor = transformation_obj.get("maxfactor")
         min_step_factor = transformation_obj.get("minstepfactor")
         max_step_factor = transformation_obj.get("maxstepfactor")
-        base_transform = A.ZoomBlur(max_factor=(min_factor, max_factor), step_factor=(min_step_factor, max_step_factor))
+        base_transform = A.ZoomBlur(max_factor=(min_factor, max_factor), step_factor=(min_step_factor, max_step_factor), p=1.0)
     elif transformation_name == "linearcontrast":
         gain = transformation_obj.get("alpha")
         per_channel = transformation_obj.get("perchannel")
@@ -73,7 +74,7 @@ def get_transformation(transformation_obj):
         alpha = transformation_obj.get("alpha")
         min_fog_range = transformation_obj.get("minfogrange")
         max_fog_range = transformation_obj.get("maxfogrange")
-        base_transform = A.RandomFog(alpha_coef= alpha, fog_coef_range=(min_fog_range, max_fog_range))
+        base_transform = A.RandomFog(alpha_coef= alpha, fog_coef_range=(min_fog_range, max_fog_range), p=1.0)
     elif transformation_name == "rain":
         min_slant_range = transformation_obj.get("minslantrange")
         max_slant_range = transformation_obj.get("maxslantrange")
@@ -81,7 +82,7 @@ def get_transformation(transformation_obj):
         rain_type = transformation_obj.get("raintype")
         base_transform = A.RandomRain(slant_range=(min_slant_range, max_slant_range), 
                                       brightness_coefficient=brightness_coefficient, 
-                                      rain_type = rain_type)
+                                      rain_type = rain_type, p=1.0)
     elif transformation_name == "chromaticabberation":
         min_primary_distortion = transformation_obj.get("minprimarydistortion")
         max_primary_distortion = transformation_obj.get("maxprimarydistortion")
@@ -89,7 +90,8 @@ def get_transformation(transformation_obj):
         max_secondary_distortion = transformation_obj.get("minsecondarydistortion")
         base_transform = A.ChromaticAberration(
             primary_distortion_limit=(min_primary_distortion, max_primary_distortion), 
-            secondary_distortion_limit=(min_secondary_distortion, max_secondary_distortion)
+            secondary_distortion_limit=(min_secondary_distortion, max_secondary_distortion),
+            p=1.0
         )
     else:
         raise Exception(f"Transformation {transformation_name} is not supported yet!")
@@ -112,24 +114,8 @@ def _wrap_transformation(transformation):
         return transformed_images_float
     return _wrapped_transform
 
-def _test_transformations(save = False, save_path = None):
-    transformations = [
-        {"id": "blur", "sigma_min": 0.1, "sigma_max": 0.5},
-        {"id": "noise", "scale": 0.05, "per_channel": True},
-        {"id": "jigsaw", "nb_rows_min": 2, "nb_cols_min": 2, "nb_rows_max": 4, "nb_cols_max": 4, "max_steps_min": 10, "max_steps_max": 20},
-        {"id": "kmeanscolorquantization", "n_colors_min": 2, "n_colors_max": 4},
-        {"id": "saltandpepper", "p_min": 0.01, "p_max": 0.05, "per_channel": True},
-        {"id": "coarsedropout", "p_min": 0.01, "p_max": 0.05, "size_percent_min": 0.01, "size_percent_max": 0.05, "per_channel": True},
-        {"id": "multiplyhue", "hue_min": -0.1, "hue_max": 0.1},
-        {"id": "affine", "scale_min": 0.9, "scale_max": 1.1, "rotate_min": -10, "rotate_max": 10, "shear_min": -10, "shear_max": 10},
-        {"id": "motionblur", "kernelsize": 30, "angle": 260, "direction": -1},
-        {"id": "zoomblur", "minfactor": 1.0, "maxfactor": 1.13, "minstepfactor": 0.02, "maxstepfactor": 0.03},
-        {"id": "linearcontrast", "alpha":0.3, "perchannel": True},
-        {"id": "grayscale", "alpha" : 1},
-        {"id": "fog", "alpha": 0.08, "minfogrange": 0.3, "maxfogrange": 1},
-        {"id": "rain", "minslantrange": -10.0, "maxslantrange": 10.0, "brightness": 0.7, "raintype": "heavy"},
-        {"id": "chromaticabberation", "minprimarydistortion": -3.0, "maxprimarydistortion": 3.0, "minsecondarydistortion": -5.0, "maxsecondarydistortion": 5.0}
-    ]
+def _test_transformations(config_path, save = False, save_path = None):
+    transformations = json.load(open(config_path))["transformations"]
     base_iamge = Image.open("luna.jpg")
     base_iamge = np.array(base_iamge)
     base_iamge = base_iamge / 255.0
