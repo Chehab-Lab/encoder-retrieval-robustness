@@ -9,9 +9,14 @@ from datasets import get_dataset
 from encoders import get_encoder, get_features
 from metric import retrieval_mean_precision, RetrievalMetrics, mean_average_precision
 from transformations import get_transformation
+from torch.utils.data import DataLoader
 
 def exists(path):
     return os.path.exists(path)
+
+def _collate_fn(batch):
+    images, labels = zip(*batch) 
+    return list(images), torch.tensor(labels)
 
 def _is_already_evaluated(checkpoint_file_path, encoder_name, dataset_name):
     if exists(checkpoint_file_path):
@@ -27,18 +32,21 @@ def _apply_transform(image, transformation):
     augmented_img = (np.array(transformation([img])) * 255).astype(np.uint8)
     return augmented_img
 
-def _get_embeddings(encoder, images, transformation, img_processor, target_dim, batch_size, device):
+def _get_embeddings(encoder, dataset, transformation, img_processor, target_dim, device):
     embeddings = []
-    for i in tqdm(range(0, len(images), batch_size)):
-        batch_images = images[i:i+batch_size]
+    all_labels = []
+    for batch_images, labels in tqdm(dataset):
         if transformation:
                 batch_images = [_apply_transform(image, transformation) for image in batch_images]
         batch_images = img_processor(batch_images, return_tensors="pt")["pixel_values"].to(device)
         batch_emb = get_features(encoder, batch_images, target_dim, device)
         embeddings.append(batch_emb)
+        all_labels.append(labels)
     embeddings = torch.cat(embeddings)
+    labels = torch.cat(all_labels)
     embeddings = embeddings.cpu().numpy()
-    return embeddings
+    labels = labels.cpu().numpy()
+    return embeddings, labels
 
 def evaluate_retrieval(encoder_name: str, 
                        dataset_name: str, 
@@ -63,17 +71,17 @@ def evaluate_retrieval(encoder_name: str,
     encoder, img_processor = get_encoder(encoder_name, device=device)
     dataset = get_dataset(dataset_name)
 
-    if verbose: print(f"\nExtracting data ...")
-    images = []
-    labels = []
-    for image, label in tqdm(dataset):
-        images.append(image)
-        labels.append(label)
-    labels = np.array(labels)
+    dataset = DataLoader(
+        dataset=dataset,
+        batch_size=batch_size,
+        shuffle=False,
+        pin_memory=True,
+        collate_fn=_collate_fn
+    )
     
     if verbose: print(f"\nGetting clean image embeddings....")
 
-    clean_emb = _get_embeddings(encoder, images, None, img_processor, target_dim, batch_size, device)
+    clean_emb, clean_labels = _get_embeddings(encoder, dataset, None, img_processor, target_dim, device)
 
     if verbose: print("\n Evaluating embeddings....")
     mAP_results = []
@@ -85,11 +93,11 @@ def evaluate_retrieval(encoder_name: str,
                     transform = get_transformation(transformation)
                     name = transformation['id']
                     if verbose: print(f"\nGetting {name} transformed image embeddings....")
-                    augmented_emb = _get_embeddings(encoder, images, transform, img_processor, target_dim, batch_size, device)
-                    result = mean_average_precision(augmented_emb, labels, clean_emb, labels, k)
+                    augmented_emb, augmented_labels = _get_embeddings(encoder, dataset, transform, img_processor, target_dim, device)
+                    result = mean_average_precision(augmented_emb, augmented_labels, clean_emb, clean_labels, k)
                     mAP_results.append({'transformation_name': name, f'mAP@{k}': result})
             else:
-                result = mean_average_precision(clean_emb, labels, clean_emb, labels, k)
+                result = mean_average_precision(clean_emb, clean_labels, clean_emb, clean_labels, k)
                 mAP_results.append({'transformation_name': None, f'mAP@{k}': result})
 
     mean_precision=[]
@@ -101,11 +109,11 @@ def evaluate_retrieval(encoder_name: str,
                     transform = get_transformation(transformation)
                     name = transformation['id']
                     if verbose: print(f"\nGetting {name} transformed image embeddings....")
-                    augmented_emb = _get_embeddings(encoder, images, transform, img_processor, target_dim, batch_size, device)
-                    result = retrieval_mean_precision(augmented_emb, labels, k)
+                    augmented_emb, augmented_labels = _get_embeddings(encoder, dataset, transform, img_processor, target_dim, device)
+                    result = retrieval_mean_precision(augmented_emb, augmented_labels, k)
                     mean_precision.append({'transformation_name': name, f'MP@{k}': result})
             else:
-                result = retrieval_mean_precision(clean_emb, labels, k)
+                result = retrieval_mean_precision(clean_emb, clean_labels, k)
                 mean_precision.append({'transformation_name': name, f'MP@{k}': result})                
 
         
@@ -135,4 +143,4 @@ def _test_retreival_pipeline():
             "angle": 45,
             "direction": 1
         }]
-    evaluate_retrieval(encoder_name, dataset_name, 2048, transformation_obj, [RetrievalMetrics.MEAN_AVERAGE_PRECISION],[5])
+    evaluate_retrieval(encoder_name, dataset_name, 2048, transformation_obj, [RetrievalMetrics.MEAN_AVERAGE_PRECISION],[5], batch_size=256)
