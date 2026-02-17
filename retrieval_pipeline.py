@@ -143,4 +143,3 @@ def _test_retreival_pipeline():
             "direction": 1
         }]
     evaluate_retrieval(encoder_name, dataset_name, 2048, transformation_obj, [RetrievalMetrics.MEAN_AVERAGE_PRECISION],[5], batch_size=256)
-_test_retreival_pipeline()
