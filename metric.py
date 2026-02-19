@@ -15,6 +15,37 @@ def retrieval_mean_precision(embeddings, labels, k):
     same_labels = labels[neighbors] == labels[:, None]
     return same_labels.mean().item()
 
+def mean_average_precision_self(embeddings, labels, k):
+    faiss.normalize_L2(embeddings)
+    index = faiss.IndexFlatIP(embeddings.shape[1])
+    index.add(embeddings)
+    average_precision = []
+
+    for i, q in enumerate(embeddings):
+        q = q.reshape(1, -1)
+        
+        _, neighbors = index.search(q, k)
+        print(len(neighbors[0]))
+        neighbors = neighbors[0, 1:]
+        total_relevant = np.sum(labels == labels[i])
+        normalizer = min(total_relevant, k)
+
+        ap = 0.0
+        rel = 0
+
+        for rank, idx in enumerate(neighbors):
+            if labels[idx] == labels[i]:
+                rel += 1
+                ap += rel / (rank + 1)
+
+        if rel > 0:
+            ap /= normalizer
+        else:
+            ap = 0.0
+
+        average_precision.append(ap)
+    return np.mean(average_precision)
+
 def mean_average_precision(queries, q_labels, embeddings, labels, k):
     faiss.normalize_L2(queries)
     faiss.normalize_L2(embeddings)
@@ -25,12 +56,9 @@ def mean_average_precision(queries, q_labels, embeddings, labels, k):
     for i, q in enumerate(queries):
         q = q.reshape(1, -1)
 
-        if queries is embeddings:
-            _, neighbors = index.search(q, k + 1)
-            neighbors = neighbors[0, 1:]
-        else:
-            _, neighbors = index.search(q, k)
-            neighbors = neighbors[0]
+        _, neighbors = index.search(q, k)
+        neighbors = neighbors[0]
+
         total_relevant = np.sum(labels == q_labels[i])
         normalizer = min(total_relevant, k)
 
