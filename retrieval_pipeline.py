@@ -7,7 +7,7 @@ from tqdm import tqdm
 from typing import List
 from datasets import get_dataset
 from encoders import get_encoder, get_features
-from metric import retrieval_mean_precision, RetrievalMetrics, mean_average_precision
+from metric import retrieval_mean_precision, RetrievalMetrics, mean_average_precision, mean_average_precision_self
 from transformations import get_transformation
 from torch.utils.data import DataLoader
 
@@ -18,11 +18,11 @@ def _collate_fn(batch):
     images, labels = zip(*batch) 
     return list(images), torch.tensor(labels)
 
-def _is_already_evaluated(checkpoint_file_path, encoder_name, dataset_name):
+def _is_already_evaluated(checkpoint_file_path, encoder_name, dataset_name, transformation_name):
     if exists(checkpoint_file_path):
         checkpoints = json.load(open(checkpoint_file_path))
         for checkpoint in checkpoints:
-            if checkpoint['encoder'] == encoder_name and checkpoint['dataset'] == dataset_name:
+            if checkpoint['encoder'] == encoder_name and checkpoint['dataset'] == dataset_name and checkpoint['transformation'] == transformation_name:
                 return True
     return False
 
@@ -51,7 +51,8 @@ def _get_embeddings(encoder, dataset, transformation, img_processor, target_dim,
 def evaluate_retrieval(encoder_name: str, 
                        dataset_name: str, 
                        target_dim: int,
-                       transformation_objs: List,
+                       transformation,
+                       transformation_name,
                        metrics = [RetrievalMetrics.MEAN_AVERAGE_PRECISION],
                        k_list: List[int] = [9],
                        batch_size: int = 64,
@@ -64,13 +65,12 @@ def evaluate_retrieval(encoder_name: str,
     if not exists(checkpoint_folder): os.mkdir(checkpoint_folder)
         
     checkpoint_file = os.path.join(checkpoint_folder, checkpoint_name+".json")
-    if _is_already_evaluated(checkpoint_file, encoder_name, dataset_name):
+    if _is_already_evaluated(checkpoint_file, encoder_name, dataset_name, transformation_name):
         print(f"{encoder_name} already evaluated on {dataset_name}. Skipping evaluation")
         return
 
     encoder, img_processor = get_encoder(encoder_name, device=device)
     dataset = get_dataset(dataset_name)
-
     dataset = DataLoader(
         dataset=dataset,
         batch_size=batch_size,
@@ -84,48 +84,45 @@ def evaluate_retrieval(encoder_name: str,
     clean_emb, clean_labels = _get_embeddings(encoder, dataset, None, img_processor, target_dim, device)
 
     if verbose: print("\n Evaluating embeddings....")
+
     mAP_results = []
     if RetrievalMetrics.MEAN_AVERAGE_PRECISION in metrics:
         if verbose: print("\n Computing mAP@k....")
+
         for k in k_list:
-            if transformation_objs:
-                for transformation in transformation_objs:
-                    transform = get_transformation(transformation)
-                    name = transformation['id']
-                    if verbose: print(f"\nGetting {name} transformed image embeddings....")
-                    augmented_emb, augmented_labels = _get_embeddings(encoder, dataset, transform, img_processor, target_dim, device)
-                    result = mean_average_precision(augmented_emb, augmented_labels, clean_emb, clean_labels, k)
-                    mAP_results.append({'transformation_name': name, f'mAP@{k}': result})
+            if transformation:
+                if verbose: print(f"\nGetting {transformation_name} transformed image embeddings....")
+                augmented_emb, augmented_labels = _get_embeddings(encoder, dataset, transformation, img_processor, target_dim, device)
+                result = mean_average_precision(augmented_emb, augmented_labels, clean_emb, clean_labels, k)
+                mAP_results.append({f'mAP@{k}': result})
             else:
-                result = mean_average_precision(clean_emb, clean_labels, clean_emb, clean_labels, k)
-                mAP_results.append({'transformation_name': None, f'mAP@{k}': result})
+                result = mean_average_precision_self(clean_emb, clean_labels, k)
+                mAP_results.append({f'mAP@{k}': result})
 
     mean_precision=[]
     if RetrievalMetrics.MEAN_PRECISION in metrics:
         if verbose: print("\n computing MP@k....")
+
         for k in k_list:
-            if transformation_objs:
-                for transformation in transformation_objs:
-                    transform = get_transformation(transformation)
-                    name = transformation['id']
-                    if verbose: print(f"\nGetting {name} transformed image embeddings....")
-                    augmented_emb, augmented_labels = _get_embeddings(encoder, dataset, transform, img_processor, target_dim, device)
-                    result = retrieval_mean_precision(augmented_emb, augmented_labels, k)
-                    mean_precision.append({'transformation_name': name, f'MP@{k}': result})
+            if transformation:
+                if verbose: print(f"\nGetting {transformation_name} transformed image query embeddings....")
+                augmented_emb, augmented_labels = _get_embeddings(encoder, dataset, transformation, img_processor, target_dim, device)
+                result = retrieval_mean_precision(augmented_emb, augmented_labels, k)
+                mean_precision.append({f'MP@{k}': result})
             else:
                 result = retrieval_mean_precision(clean_emb, clean_labels, k)
-                mean_precision.append({'transformation_name': name, f'MP@{k}': result})                
-
+                mean_precision.append({f'MP@{k}': result})                
         
     if verbose: print("\nSaving checkpoint....")
-    
+
     results = {
         'encoder': encoder_name,
         'dataset': dataset_name,
+        'transformation': transformation_name,
         'metrics': {
-            'mAP': mAP_results,
-            'mean_precision': mean_precision
-        }
+                'mAP': mAP_results,
+                'mean_precision': mean_precision
+            }
         }
     
     checkpoint = json.load(open(checkpoint_file)) if exists(checkpoint_file) else []
@@ -137,10 +134,12 @@ def evaluate_retrieval(encoder_name: str,
 def _test_retreival_pipeline():
     encoder_name = "custom/byol-resnet50"
     dataset_name = "gpr1200"
-    transformation_obj = [{
+    transformation_obj = {
             "id": "motionblur",
             "kernelsize": 14,
             "angle": 45,
             "direction": 1
-        }]
-    evaluate_retrieval(encoder_name, dataset_name, 2048, transformation_obj, [RetrievalMetrics.MEAN_AVERAGE_PRECISION],[5], batch_size=256)
+        }
+    transformation = get_transformation(transformation_obj)
+    transformation_name = transformation_obj['id']
+    evaluate_retrieval(encoder_name, dataset_name, 2048, transformation, transformation_name, [RetrievalMetrics.MEAN_AVERAGE_PRECISION],[10], batch_size=256)
