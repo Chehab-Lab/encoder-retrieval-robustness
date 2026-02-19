@@ -77,12 +77,6 @@
             "alpha" : 1
         },
         {
-            "id": "fog", 
-            "alpha": 0.3, 
-            "minfogrange": 0.2,
-            "maxfogrange": 0.25
-        },
-        {
             "id": "rain", 
             "minslantrange": -10.0,
             "maxslantrange": 10.0, 
@@ -95,6 +89,12 @@
             "maxprimarydistortion": 0.15, 
             "minsecondarydistortion": 0.1,
             "maxsecondarydistortion": 0.15
+        },
+        {
+            "id": "fog", 
+            "alpha": 0.3, 
+            "minfogrange": 0.2,
+            "maxfogrange": 0.25
         }
     ],
     "datasets": [
